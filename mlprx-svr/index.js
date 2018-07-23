@@ -62,11 +62,13 @@ var server = http.createServer((req, res) => {
 
     //redis.eval(processCounterScript, 1, luaIpKey, epochSeconds, expiresInSeconds, MAX_QTY_IN_WINDOW).then(result => {
     redis.processCounter(luaIpKey, epochSeconds, expiresInSeconds, MAX_QTY_IN_WINDOW).then(result => {
+        var rateLimitReached = result[0] == 1;
+
         //console.log(result);
 
         res.writeHead(200, { 'Content-Type': 'text/plain' });
 
-        if(result[0] == 1) { //denied
+        if(rateLimitReached) { //denied
             let limitMsg = `you have reach your limit of ${MAX_QTY_IN_WINDOW} hits in the last ${expiresInSeconds} seconds`;
             console.warn(limitMsg);
             if(result[3] != 0) {//oldest item
