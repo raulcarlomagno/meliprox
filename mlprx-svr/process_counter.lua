@@ -6,14 +6,14 @@ local max_qty_in_window = tonumber(ARGV[3]) -- the current timestamp
 local members_expired = 0 -- number of members expired/removed
 local current_qty_in_set = 0
 local denied = 0 -- final flag
-local oldestItem = 0
+local oldestAliveItem = 0
 
 for index, value in next, redis.call('SMEMBERS', key) do
     if tonumber(value) < limit_epoch then
         redis.call('SREM', key, value);
         members_expired = members_expired + 1
     else
-        if oldestItem == 0 then oldestItem = tonumber(value) end
+        oldestAliveItem = tonumber(value)
         break
     end
 end
@@ -33,5 +33,5 @@ return {
     denied,
     current_qty_in_set,
     members_expired,
-    oldestItem
+    oldestAliveItem
 }
