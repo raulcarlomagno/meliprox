@@ -53,6 +53,8 @@ proxy.on('error', (err, req, res) => {
 var server = http.createServer((req, res) => {
     const clientIp = (req.connection.remoteAddress == '::1' ? '127.0.0.1' : req.connection.remoteAddress).replace(/:/g, '·'); //sino redis toma los : como separador del key
     const luaIpKey = 'ip:' + clientIp;
+    const luaPathKey = 'path:' + req.url;
+    const luaIpPathKey = 'ip-path:' + clientIp + '-' + req.url;
 
     var epochSeconds =  Date.now()/1000|00;
     var expiresInSeconds = 5;
@@ -61,6 +63,10 @@ var server = http.createServer((req, res) => {
     console.log("requesting %s from ip %s", req.url, clientIp);
 
     //redis.eval(processCounterScript, 1, luaIpKey, epochSeconds, expiresInSeconds, MAX_QTY_IN_WINDOW).then(result => {
+
+    redis.processCounter(luaPathKey, epochSeconds, 10, 5);
+    redis.processCounter(luaIpPathKey, epochSeconds, 5, 2);
+
     redis.processCounter(luaIpKey, epochSeconds, expiresInSeconds, MAX_QTY_IN_WINDOW).then(result => {
         var rateLimitReached = result[0] == 1;
 
