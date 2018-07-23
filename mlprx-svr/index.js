@@ -1,6 +1,12 @@
 const http = require('http');
 const httpProxy = require('http-proxy');
 const winston = require('winston');
+
+const Catbox = require('catbox');
+const CatboxMemory = require('catbox-memory'); //se podria usar un redis local para acelerar la performance, no el redis distribuido
+const cache = new Catbox.Client(CatboxMemory);
+
+
 var Redis = require('ioredis');
 var redis = new Redis(6379, '172.17.0.2');
 var fs = require("fs");
@@ -9,6 +15,8 @@ const PORT = process.env.PORT || 8888;
 
 var proxy = httpProxy.createProxyServer({});
 
+//TokenBucket
+//RateLimiter
 
 var processCounterScript = fs.readFileSync('process_counter.lua').toString(); //deberimos cargarlo con loadscript desde el manager y aca ejecutar un evalsha con el hash qeu vendria por config
 
@@ -50,7 +58,7 @@ proxy.on('error', (err, req, res) => {
     res.end('Something went wrong. And we are reporting a custom error message.');    
 });
 
-var server = http.createServer((req, res) => {
+var server = http.createServer(async (req, res) => {
     const clientIp = (req.connection.remoteAddress == '::1' ? '127.0.0.1' : req.connection.remoteAddress).replace(/:/g, '·'); //sino redis toma los : como separador del key
     const luaIpKey = 'ip:' + clientIp;
     const luaPathKey = 'path:' + req.url;
@@ -67,14 +75,17 @@ var server = http.createServer((req, res) => {
     redis.processCounter(luaPathKey, epochSeconds, 10, 5);
     redis.processCounter(luaIpPathKey, epochSeconds, 5, 2);
 
-    redis.processCounter(luaIpKey, epochSeconds, expiresInSeconds, MAX_QTY_IN_WINDOW).then(result => {
+    var rule = await cache.get({segment: 'rules', id: clientIp});
+    if(rule) rule = rule.item;
+
+    redis.processCounter(luaIpKey, epochSeconds, rule.timeWindow, rule.maxHits).then(result => {
         var rateLimitReached = result[0] == 1;
 
         //console.log(result);
-
-        res.writeHead(200, { 'Content-Type': 'text/plain' });
+       
 
         if(rateLimitReached) { //denied
+            res.writeHead(429, { 'Content-Type': 'text/plain' });
             let limitMsg = `you have reach your limit of ${MAX_QTY_IN_WINDOW} hits in the last ${expiresInSeconds} seconds`;
             console.warn(limitMsg);
             if(result[3] != 0) {//oldest item
@@ -85,6 +96,7 @@ var server = http.createServer((req, res) => {
             }
             res.end(limitMsg);
         } else {
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
             res.end('request successfully proxied to: ' + req.url);
         }
 
@@ -107,4 +119,9 @@ var server = http.createServer((req, res) => {
 
 });
 
-server.listen(PORT, () => console.log("listening on port %s", PORT));
+
+(async() =>  {
+    await cache.start();
+    await cache.set({segment: 'rules', id:'127.0.0.1'}, {maxHits: 2, timeWindow: 5});
+    server.listen(PORT, () => console.log("listening on port %s", PORT));
+})() 
