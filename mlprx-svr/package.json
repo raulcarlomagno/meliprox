@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "http-proxy": "^1.17.0",
     "ioredis": "^3.2.2",
     "winston": "^3.0.0"
