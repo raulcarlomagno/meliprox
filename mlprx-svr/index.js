@@ -5,7 +5,7 @@ const { RateLimiter, RateLimitReachedError }  = require('./rateLimiter');
 const util = require('./Util');
 
 const Redis = require('ioredis');
-var redis = new Redis(6379, '172.17.0.2'); //sacar de entorno o config, ver
+var redis = new Redis(6379, '172.17.0.2'); //sacar de entorno o config, ver, redis cluster o sentinel
 var fs = require("fs");
 
 //pasar a un config
@@ -32,7 +32,6 @@ proxy.on('proxyRes', (proxyRes, req, res) => {
 
     proxyRes.on('end', function () {
         body = body.toString();
-        
         let pageKey = 'pages:' + req.url;
         
         redis.multi().hmset(pageKey, 'body', body, 'headers', JSON.stringify(proxyRes.rawHeaders))
