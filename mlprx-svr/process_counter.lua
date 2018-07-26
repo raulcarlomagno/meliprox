@@ -25,13 +25,14 @@ if (current_qty_in_set + 1 > max_qty_in_window) then
     allowed = 0
 else
     redis.call('SADD', key, epoch)
-    redis.call('EXPIREAT', key, math.floor((epoch + expires_in_ms)/1000)) --la expiracion va en segundos
+    redis.call('PEXPIREAT', key, epoch + expires_in_ms) --expiracion en ms
 end
 
 returnObj['allowed'] = allowed
 returnObj['current_qty_in_set'] = current_qty_in_set
 returnObj['items_expired'] = items_expired
 returnObj['oldest_item'] = oldestAliveItem
+returnObj['millisec_retry'] = oldestAliveItem + expires_in_ms - epoch
 
 --se pudo haber optimizado mandando los valores por separados y no encodeando json
 
