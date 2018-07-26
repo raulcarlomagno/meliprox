@@ -9,7 +9,7 @@ var redis = new Redis(6379, '172.17.0.2'); //sacar de entorno o config, ver, red
 var fs = require("fs");
 
 //pasar a un config
-const DEFAULT_PAGE_TTL = 5; //in seconds //hacer ttl por pagina
+const DEFAULT_PAGE_TTL = 3; //in seconds //hacer ttl por pagina
 const PRODUCT_NAME = "MeliProx";
 
 var rateLimiter = new RateLimiter(redis);
@@ -95,6 +95,7 @@ var server = http.createServer((req, res) => {
 (() =>  {
     redis.set("rules:ip:··1", JSON.stringify({maxHits: 2, timeWindow: 4 * 1000})); //se podria haber usado un hash para optimizar un poco mas
     redis.set("rules:ip:*", JSON.stringify({maxHits: 3, timeWindow: 5 * 1000}));
+
     /*
     redis.set("rules:path:/sites/MLA/categories", JSON.stringify({maxHits: 1, timeWindow: 10}));
     redis.set("rules:ip-path:*-/sites/MLB/categories", JSON.stringify({maxHits: 2, timeWindow: 4}));

@@ -1,16 +1,16 @@
 'use strict';
 const Promise = require("bluebird");
-const millisec2str = require('./millisec2str');
 const logger  = require('./logger');
+const util = require('./Util');
 
 function RateLimiter(redis) {
     var redis = redis;
 
     this.check = (clientIp, url) => {
-        let ipHash = ":ip:" + clientIp;
-        let ipWildcardHash = ":ip:*";
-        let pathHash = ":path:" + url;
-        let ipPathHash = ":ip-path:" + clientIp + ":" + url;
+        const ipHash = ":ip:" + clientIp;
+        const ipWildcardHash = ":ip:*";
+        const pathHash = ":path:" + url;
+        const ipPathHash = ":ip-path:" + clientIp + ":" + url;
 
         var epochMilli =  Date.now();
 
@@ -41,7 +41,7 @@ function RateLimiter(redis) {
     };
 
     this.getLimitMsg = (rule, validationResult) => {
-        return `You have reach ${rule.maxHits} hits in the last ${millisec2str(rule.timeWindow)} limit. Please retry in ${millisec2str(validationResult.millisec_retry)}.`;
+        return `You have reach ${rule.maxHits} hits in the last ${util.millisecToStr(rule.timeWindow)} limit. Please retry in ${util.millisecToStr(validationResult.millisec_retry)}.`;
     };
 
 
